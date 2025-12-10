@@ -1,0 +1,184 @@
+ Productivity Suite Documentation
+A complete guide to using, understanding, and extending the Python Productivity Suite, which integrates multiple tools (Calculator, Notes Manager, Timer, File Organizer) using object-oriented design, modular architecture, and clean file handling.
+
+ 1. Introduction
+The Productivity Suite is a modular Python-based application that brings together essential productivity tools in a simple command-line interface. It is designed with:
+•	Clean OOP structure
+•	Easy-to-maintain module separation
+•	Efficient file handling for notes and organizing files
+•	A user-friendly CLI menu
+•	Expandable architecture for adding more tools in the future
+This documentation provides:
+•	Tool descriptions
+•	Usage instructions
+•	Architecture overview
+•	Developer notes
+•	Example commands and outputs
+
+ 2. Features Overview
+Calculator Tool
+•	Supports Add, Subtract, Multiply, Divide
+•	Handles invalid inputs and zero-division errors
+Notes Manager Tool
+•	Create, view, list, edit, delete notes
+•	Notes stored under data/notes/
+•	File-based management (TXT or JSON)
+
+Timer & Stopwatch Tool
+•	Start, pause, resume, stop stopwatch
+•	Countdown timer support
+•	Tracks elapsed time with precision
+File Organizer Tool
+•	Automatically organizes files by type
+•	Moves files into Images, Documents, Videos, Audio, Others
+•	Uses safe file handling with overwrite protection
+
+ 3. Project Structure
+Personal Productivity Suite
+│── README.md
+│── main.py
+│── requirements.txt
+│
+├── modules
+│   ├── calculator.py
+│   ├── notes.py
+│   ├── timer.py
+│   └── file_organizer.py
+│
+├── data
+│   ├── notes
+│   └── backups
+│
+├── docs
+│   └── user_guide.md
+│
+├── tests
+│   ├── test_calculator.py
+│   ├── test_notes.py
+│   └── test_file_organizer.py
+│
+└── examples
+    └── example_usage.py
+
+4. Installation Guide
+Step 1: Clone Repository
+git clone https://github.com/<your-username>/productivity-suite.git
+cd productivity-suite
+Step 2: Create Virtual Environment (Optional but Recommended)
+python -m venv venv
+source venv/bin/activate   # Linux / macOS
+venv\Scripts\activate      # Windows
+Step 3: Install Dependencies
+pip install -r requirements.txt
+
+ 5. Running the Application
+Run the main entry point:
+python main.py
+The main menu will appear:
+==========================================
+        PERSONAL PRODUCTIVITY SUITE
+==========================================
+1. Calculator
+2. Notes Manager
+3. Timer & Stopwatch
+4. File Organizer
+5. Unit Converter
+6. Backup & Restore
+7. Exit
+Enter your choice:
+
+ 6. Calculator Module
+Location: modules/calculator.py
+Class: Calculator
+Available Operations:
+•	add(a, b)
+•	subtract(a, b)
+•	multiply(a, b)
+•	divide(a, b)
+Example:
+from modules.calculator import Calculator
+calc = Calculator()
+print(calc.add(5, 3))  # Output: 8
+
+ 7. Notes Manager Module
+Location: modules/notes.py
+Class: NotesManager
+Features:
+•	Create new note
+•	List existing notes
+•	Read note content
+•	Edit a note
+•	Delete a note
+•	Search notes
+
+Example:
+from modules.notes import NotesManager
+nm = NotesManager("data/notes")
+nm.create("Shopping List", "Milk, Eggs, Bread")
+
+ 8. Timer & Stopwatch Module
+Location: modules/timer.py
+Class: Timer
+Functions:
+•	start()
+•	pause()
+•	resume()
+•	stop()
+•	elapsed_time()
+Example:
+from modules.timer import Timer
+sw = Timer()
+sw.start()
+# ...task...
+sw.stop()
+print(sw.elapsed_time())
+
+ 9. File Organizer Module
+Location: modules/file_organizer.py
+Class: FileOrganizer
+Features:
+•	Automatically organizes files
+•	Categorizes by file type
+•	Moves files safely into subfolders
+•	Supports customizable file-type mappings
+
+Example:
+from modules.file_organizer import FileOrganizer
+fo = FileOrganizer()
+fo.organize("C:/Users/Downloads")
+
+ 10. Running Unit Tests
+Run all tests using:
+python -m unittest discover -s tests
+Test files include:
+•	test_calculator.py
+•	test_notes.py
+•	test_file_organizer.py
+
+ 11. Architecture & Design Principles
+1. Object-Oriented Design
+Each tool is encapsulated in its own class.
+2. Separation of Concerns
+•	UI is handled in Main.py
+•	Logic stays inside modules/
+3. File Handling Safety
+•	Notes stored with timestamps
+•	File Organizer checks for folder existence
+•	Uses .gitkeep to maintain empty directories
+4. Expandability
+New modules can be added easily (e.g., reminders, password manager, to-do list).
+
+ 12. Future Enhancements
+•	GUI using Tkinter or PyQt
+•	Cloud backup for notes
+•	File organizer with duplicate detection
+•	Auto-save notes
+•	Voice-enabled timer
+
+ 13. Support
+For issues or feature requests:
+•	Create a GitHub Issue
+•	Contact: <srijaakula200@gmail.com>
+
+ Thank you for using the Productivity Suite!
+
