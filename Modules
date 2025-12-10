@@ -1,0 +1,121 @@
+# Modules used in this project
+Tool Modules Used in This Project
+
+Your project includes four main tool modules, each implemented as a separate Python class/module inside the modules/ directory.
+ 1. calculator.py
+
+Purpose: Perform arithmetic operations.
+Responsibilities:
+
+Add, subtract, multiply, divide
+
+Validate inputs
+
+Handle division-by-zero errors
+
+Provide clean method-based API (OOP)
+
+Class Example:
+
+class Calculator:
+    def add(self, a, b):
+        return a + b
+
+ 2. notes.py
+
+Purpose: Manage user notes with file storage.
+Responsibilities:
+
+Create notes
+
+View notes
+
+List all notes
+
+Edit notes
+
+Delete notes
+
+Search notes
+
+Store notes in the data/notes folder
+
+Handle file I/O safely
+
+Class Example:
+
+class NotesManager:
+    def create(self, title, content):
+        ...
+
+ 3. timer.py
+
+Purpose: Provide countdown timer & stopwatch functionality.
+Responsibilities:
+
+Start / pause / stop stopwatch
+
+Calculate elapsed time
+
+Support countdown timers
+
+Allow formatted time output
+
+Use Python time module internally
+
+Class Example:
+
+class Timer:
+    def start(self):
+        ...
+
+ 4. file_organizer.py
+
+Purpose: Automatically organize files in a directory.
+Responsibilities:
+
+Scan a folder
+
+Sort files into categories (Images, Documents, Videos, etc.)
+
+Create destination folders if not present
+
+Move files safely
+
+Backup option (optional)
+
+Use file extensions from predefined mappings
+
+Class Example:
+
+class FileOrganizer:
+    def organize(self, path):
+        ...
+
+ modules/ Folder Structure
+modules/
+│── __init__.py
+│── calculator.py
+│── notes.py
+│── timer.py
+└── file_organizer.py
+
+ Additional Optional Modules (If You Want to Expand)
+
+These are optional but useful:
+
+ logger.py
+
+Custom logging system.
+
+ config_manager.py
+
+Handles reading/writing config.json.
+
+ backup_manager.py
+
+Handles backups for notes or organized files.
+
+ menu.py
+
+Centralized class for displaying CLI menus.
