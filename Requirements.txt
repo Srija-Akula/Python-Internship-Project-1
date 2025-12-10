@@ -1,0 +1,9 @@
+## Technical Requirements :
+Create modular architecture with separate modules for each tool
+Implement file operations using multiple formats (CSV, JSON, TXT)
+Add comprehensive error handling for all user inputs
+Create interactive command-line interface with menu system
+Implement data persistence across sessions
+Organize code into reusable modules and packages
+Include unit conversion, calculations, and utility functions
+Add data backup and restore functionality
