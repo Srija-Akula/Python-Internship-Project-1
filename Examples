@@ -1,0 +1,42 @@
+1. examples/calculator_example.py
+
+from modules.calculator import Calculator
+
+calc = Calculator()
+
+print("Addition:", calc.add(10, 5))
+print("Subtraction:", calc.subtract(10, 5))
+print("Multiplication:", calc.multiply(10, 5))
+print("Division:", calc.divide(10, 5))
+
+output:
+Addition: 15
+Subtraction: 5
+Multiplication: 50
+Division: 2.0
+
+2. examples/notes_example.py
+
+from modules.notes import NotesManager
+
+notes = NotesManager()
+
+# Create a note
+note_id = notes.create("Shopping List", "Milk\nEggs\nBread")
+print("Created note:", note_id)
+
+# Read the note
+print("Reading note:")
+print(notes.read(note_id))
+
+# Edit note
+notes.edit(note_id, "Milk\nEggs\nBread\nButter")
+print("Updated note:")
+print(notes.read(note_id))
+
+# Search notes
+results = notes.search("Milk")
+print("Search results:", results)
+
+# List all notes
+print("All notes:", notes.list())
