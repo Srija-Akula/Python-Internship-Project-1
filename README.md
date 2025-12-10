@@ -1,4 +1,3 @@
-# Python-Internship-Project-1
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -7,9 +6,11 @@ import time
 import shutil
 from pathlib import Path
 import sys
+import tempfile
 
 # ---------------------- CONFIG ----------------------
-NOTES_FILE = Path.home() / ".personal_productivity_notes.txt"
+# We'll select a writable notes file at startup (see get_writable_notes_file)
+NOTES_FILE = None
 
 
 # ---------------------- UTILITIES ----------------------
@@ -36,7 +37,44 @@ def read_choice(prompt: str, valid: set = None) -> str:
         choice = input(prompt).strip()
         if valid is None or choice in valid:
             return choice
-        print("Invalid choice.Please Try again.")
+        print("Invalid choice. Please try again.")
+
+
+def get_writable_notes_file():
+    """
+    Return a Path to a notes file that we can open for appending.
+    Tries a list of candidate locations and returns the first that succeeds.
+    """
+    candidates = [
+        Path.cwd() / "notes.txt",  # script folder (safe)
+        Path.home() / "personal_productivity_notes.txt",  # home (non-hidden)
+        Path.home() / "Documents" / "notes.txt",  # Documents
+        Path(tempfile.gettempdir()) / "personal_productivity_notes.txt",  # system temp
+    ]
+
+    for p in candidates:
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            # Try opening for append to confirm writable
+            with open(p, "a", encoding="utf-8"):
+                pass
+            return p
+        except PermissionError:
+            # can't write here, try next
+            continue
+        except OSError:
+            # other OS errors (readonly fs, invalid path...), try next
+            continue
+
+    # Last resort: in-memory temp file name in cwd (not guaranteed but try)
+    fallback = Path.cwd() / "notes.txt"
+    try:
+        with open(fallback, "a", encoding="utf-8"):
+            pass
+        return fallback
+    except Exception:
+        # If absolutely nothing is writable, raise so the program can handle it
+        raise OSError("No writable location found for notes file.")
 
 
 # ---------------------- CALCULATOR ----------------------
@@ -49,14 +87,10 @@ def calculator():
         print("4. Divide")
         print("5. Back to Main Menu")
 
-        choice = input("Choose an option: ").strip()
+        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4', '5'})
 
         if choice == '5':
             return
-
-        if choice not in {'1', '2', '3', '4'}:
-            print("Invalid choice! Please choose 1-5.")
-            continue
 
         try:
             num1 = float(input("Enter first number: ").strip())
@@ -80,7 +114,19 @@ def calculator():
 
 # ---------------------- NOTES APP ----------------------
 def notes_app():
+    global NOTES_FILE
     notes_file = NOTES_FILE
+    # If we somehow don't have a notes file (shouldn't happen), try to get one now
+    if notes_file is None:
+        try:
+            notes_file = get_writable_notes_file()
+            NOTES_FILE = notes_file
+            print(f"Notes will be saved to: {notes_file}")
+        except OSError as e:
+            print("Unable to find a writable location for notes:", e)
+            print("Notes feature disabled.")
+            return
+
     while True:
         print("\n--- Notes App ---")
         print("1. Create a Note")
@@ -88,15 +134,27 @@ def notes_app():
         print("3. Clear Notes")
         print("4. Back to Main Menu")
 
-        choice = input("Choose an option: ").strip()
+        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4'})
 
         if choice == '1':
-            note = input("Please Enter your note: ")
+            note = input("Please enter your note: ")
             try:
                 notes_file.parent.mkdir(parents=True, exist_ok=True)
                 with open(notes_file, "a", encoding="utf-8") as f:
                     f.write(note.rstrip() + "\n")
                 print("Note saved!")
+            except PermissionError:
+                print("Permission denied writing to", notes_file)
+                print("Attempting to switch to an alternate location...")
+                try:
+                    alt = get_writable_notes_file()
+                    NOTES_FILE = alt
+                    notes_file = alt
+                    with open(notes_file, "a", encoding="utf-8") as f:
+                        f.write(note.rstrip() + "\n")
+                    print("Note saved to alternate location:", notes_file)
+                except Exception as e:
+                    print("Failed to save note:", e)
             except OSError as e:
                 print("Error saving note:", e)
 
@@ -110,6 +168,8 @@ def notes_app():
                         print(content)
                     else:
                         print("No notes found!")
+                except PermissionError:
+                    print("Permission denied reading", notes_file)
                 except OSError as e:
                     print("Error reading notes:", e)
             else:
@@ -121,6 +181,8 @@ def notes_app():
                 try:
                     open(notes_file, "w", encoding="utf-8").close()
                     print("All notes cleared!")
+                except PermissionError:
+                    print("Permission denied clearing", notes_file)
                 except OSError as e:
                     print("Error clearing notes:", e)
             else:
@@ -128,8 +190,6 @@ def notes_app():
 
         elif choice == '4':
             return
-        else:
-            print("Invalid choice!")
 
 
 # ---------------------- TIMER / STOPWATCH ----------------------
@@ -140,7 +200,7 @@ def timer_tool():
         print("2. Stopwatch")
         print("3. Back to Main Menu")
 
-        choice = input("Choose an option: ").strip()
+        choice = read_choice("Choose an option: ", valid={'1', '2', '3'})
 
         if choice == '1':
             try:
@@ -162,26 +222,23 @@ def timer_tool():
 
         elif choice == '2':
             input("Press Enter to start stopwatch...")
-            start = time.time()
+            start = time.perf_counter()
             try:
                 input("Press Enter to stop stopwatch...")
             except KeyboardInterrupt:
-                # If user presses Ctrl+C while running, we still stop and report elapsed
                 print("\nStopwatch interrupted; stopping now.")
-            end = time.time()
+            end = time.perf_counter()
             elapsed = round(end - start, 2)
             print("Elapsed Time:", elapsed, "seconds")
 
         elif choice == '3':
             return
-        else:
-            print("Invalid choice! Please try again")
 
 
 # ---------------------- FILE ORGANIZER ----------------------
 def file_organizer():
     print("\n--- File Organizer ---")
-    raw_path = input("Please Enter folder path to organize: ").strip()
+    raw_path = input("Please enter folder path to organize: ").strip()
     if not raw_path:
         print("No path provided.")
         return
@@ -224,6 +281,15 @@ def file_organizer():
 
 # ---------------------- MAIN MENU ----------------------
 def main():
+    global NOTES_FILE
+    try:
+        NOTES_FILE = get_writable_notes_file()
+        print(f"Notes file: {NOTES_FILE}")
+    except Exception as e:
+        NOTES_FILE = None
+        print("Warning: Could not determine a writable notes file. Notes feature may be disabled.")
+        print("Reason:", e)
+
     while True:
         print("\n========= Personal Productivity Suite =========")
         print("1. Calculator")
@@ -232,7 +298,7 @@ def main():
         print("4. File Organizer")
         print("5. Exit")
 
-        choice = input("Choose an option: ").strip()
+        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4', '5'})
 
         if choice == '1':
             calculator()
@@ -245,8 +311,6 @@ def main():
         elif choice == '5':
             print("Exiting... Have a productive day!")
             return
-        else:
-            print("Invalid choice!Please Try again.")
 
 
 if __name__ == "__main__":
