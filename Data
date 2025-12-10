@@ -1,0 +1,78 @@
+ Data Used in This Project
+
+Your project uses local filesystem data, stored inside the data/ directory.
+There is no online data, API data, or database data — everything is stored as simple files.
+
+The data can be categorized into two types:
+
+ Notes Data (used by Notes Manager)
+ Location:
+data/notes/
+
+ What is stored here?
+
+Each note the user creates is stored as a text file or JSON file, such as:
+
+note_20250110_153200.txt
+note_20250214_meeting.txt
+
+Contents of each note file:
+
+Title
+
+Timestamp
+
+Note content
+
+Optional metadata (tags, edited time, etc.)
+
+Example file content:
+
+Title: Shopping List
+Date: 2025-02-14
+---------------------
+- Milk
+- Eggs
+- Bread
+
+Purpose:
+
+ Persistent storage
+ Allows reading, editing, deleting
+ Easy to back up
+
+ Backup Data (used by File Organizer / Notes Manager)
+ Location:
+data/backups/
+
+ What is stored here?
+
+Backups of user notes
+
+Backups of folders before organizing
+
+ZIP files or simple folders containing backup copies
+
+Example backup files:
+
+notes_backup_20250214.zip
+backup_20250201_180000/
+
+Purpose:
+
+ Safety before file organization
+ Restore notes if needed
+ Version history (optional)
+
+| Module         | Type of Data Used            | Stored In       |
+| -------------- | ---------------------------- | --------------- |
+| Calculator     | No data stored               | —               |
+| Notes Manager  | User notes (text/JSON files) | `data/notes/`   |
+| Timer          | No persistent data stored    | —               |
+| File Organizer | Backup folders / zip files   | `data/backups/` |
+
+This project uses two types of data:
+
+Notes created by users → stored in data/notes/
+
+Backups created by tools → stored in data/backups/
