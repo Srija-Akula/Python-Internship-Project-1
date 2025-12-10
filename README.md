@@ -1,19 +1,50 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Productivity Suite (CLI) - Object Oriented
+Tools:
+ - Calculator
+ - NotesManager (SQLite)
+ - Timer & Stopwatch
+ - FileOrganizer
+Main app coordinates menus and tool invocation.
+"""
+
 import os
+import sys
 import time
 import shutil
+import sqlite3
+import csv
+import json
 from pathlib import Path
-import sys
-import tempfile
+from datetime import datetime
+from typing import Optional, List
 
-# ---------------------- CONFIG ----------------------
-# We'll select a writable notes file at startup (see get_writable_notes_file)
-NOTES_FILE = None
+# -------------------------
+# Helper functions
+# -------------------------
+def read_choice(prompt: str, valid: Optional[set] = None) -> str:
+    """Read user input and validate against a set (if provided)."""
+    while True:
+        try:
+            s = input(prompt).strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return ""
+        if valid is None or s in valid or s == "":
+            return s
+        print("Invalid choice. Please try again.")
 
 
-# ---------------------- UTILITIES ----------------------
+def press_enter(msg: str = "Press Enter to continue..."):
+    try:
+        input(msg)
+    except (EOFError, KeyboardInterrupt):
+        print()
+
+
 def safe_move(src: Path, dest_dir: Path):
     """
     Move src (Path) into dest_dir (Path). If a file with the same name exists,
@@ -31,225 +62,386 @@ def safe_move(src: Path, dest_dir: Path):
     shutil.move(str(src), str(dest))
 
 
-def read_choice(prompt: str, valid: set = None) -> str:
-    """Read and return stripped user input. If valid set provided, loop until valid."""
-    while True:
-        choice = input(prompt).strip()
-        if valid is None or choice in valid:
-            return choice
-        print("Invalid choice. Please try again.")
+def format_seconds(seconds: int) -> str:
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    else:
+        return f"{m:02d}:{s:02d}"
 
 
-def get_writable_notes_file():
-    """
-    Return a Path to a notes file that we can open for appending.
-    Tries a list of candidate locations and returns the first that succeeds.
-    """
-    candidates = [
-        Path.cwd() / "notes.txt",  # script folder (safe)
-        Path.home() / "personal_productivity_notes.txt",  # home (non-hidden)
-        Path.home() / "Documents" / "notes.txt",  # Documents
-        Path(tempfile.gettempdir()) / "personal_productivity_notes.txt",  # system temp
-    ]
+# -------------------------
+# Calculator
+# -------------------------
+class Calculator:
+    def __init__(self):
+        self.history: List[str] = []
 
-    for p in candidates:
-        try:
-            p.parent.mkdir(parents=True, exist_ok=True)
-            # Try opening for append to confirm writable
-            with open(p, "a", encoding="utf-8"):
-                pass
-            return p
-        except PermissionError:
-            # can't write here, try next
-            continue
-        except OSError:
-            # other OS errors (readonly fs, invalid path...), try next
-            continue
+    def run(self):
+        while True:
+            print("\n--- Calculator ---")
+            print("1. Add")
+            print("2. Subtract")
+            print("3. Multiply")
+            print("4. Divide")
+            print("5. View History")
+            print("6. Go to Main Menu")
+            choice = read_choice("Choose an option: ", valid={'1','2','3','4','5','6'})
 
-    # Last resort: in-memory temp file name in cwd (not guaranteed but try)
-    fallback = Path.cwd() / "notes.txt"
-    try:
-        with open(fallback, "a", encoding="utf-8"):
-            pass
-        return fallback
-    except Exception:
-        # If absolutely nothing is writable, raise so the program can handle it
-        raise OSError("No writable location found for notes file.")
+            if choice == "" or choice == '6':
+                return
 
+            if choice not in {'1','2','3','4','5'}:
+                print("Invalid choice!")
+                continue
 
-# ---------------------- CALCULATOR ----------------------
-def calculator():
-    while True:
-        print("\n--- Calculator ---")
-        print("1. Add")
-        print("2. Subtract")
-        print("3. Multiply")
-        print("4. Divide")
-        print("5. Back to Main Menu")
-
-        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4', '5'})
-
-        if choice == '5':
-            return
-
-        try:
-            num1 = float(input("Enter first number: ").strip())
-            num2 = float(input("Enter second number: ").strip())
-        except ValueError:
-            print("Please enter valid numbers!")
-            continue
-
-        if choice == '1':
-            print("Result:", num1 + num2)
-        elif choice == '2':
-            print("Result:", num1 - num2)
-        elif choice == '3':
-            print("Result:", num1 * num2)
-        elif choice == '4':
-            if num2 != 0:
-                print("Result:", num1 / num2)
-            else:
-                print("Error: Division by zero")
-
-
-# ---------------------- NOTES APP ----------------------
-def notes_app():
-    global NOTES_FILE
-    notes_file = NOTES_FILE
-    # If we somehow don't have a notes file (shouldn't happen), try to get one now
-    if notes_file is None:
-        try:
-            notes_file = get_writable_notes_file()
-            NOTES_FILE = notes_file
-            print(f"Notes will be saved to: {notes_file}")
-        except OSError as e:
-            print("Unable to find a writable location for notes:", e)
-            print("Notes feature disabled.")
-            return
-
-    while True:
-        print("\n--- Notes App ---")
-        print("1. Create a Note")
-        print("2. View Notes")
-        print("3. Clear Notes")
-        print("4. Back to Main Menu")
-
-        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4'})
-
-        if choice == '1':
-            note = input("Please enter your note: ")
-            try:
-                notes_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(notes_file, "a", encoding="utf-8") as f:
-                    f.write(note.rstrip() + "\n")
-                print("Note saved!")
-            except PermissionError:
-                print("Permission denied writing to", notes_file)
-                print("Attempting to switch to an alternate location...")
-                try:
-                    alt = get_writable_notes_file()
-                    NOTES_FILE = alt
-                    notes_file = alt
-                    with open(notes_file, "a", encoding="utf-8") as f:
-                        f.write(note.rstrip() + "\n")
-                    print("Note saved to alternate location:", notes_file)
-                except Exception as e:
-                    print("Failed to save note:", e)
-            except OSError as e:
-                print("Error saving note:", e)
-
-        elif choice == '2':
-            if notes_file.exists():
-                try:
-                    with open(notes_file, "r", encoding="utf-8") as f:
-                        content = f.read().strip()
-                    if content:
-                        print("\nYour Notes:")
-                        print(content)
-                    else:
-                        print("No notes found!")
-                except PermissionError:
-                    print("Permission denied reading", notes_file)
-                except OSError as e:
-                    print("Error reading notes:", e)
-            else:
-                print("No notes found!")
-
-        elif choice == '3':
-            confirm = input("Are you sure you want to clear all notes? (y/n): ").strip().lower()
-            if confirm == 'y':
-                try:
-                    open(notes_file, "w", encoding="utf-8").close()
-                    print("All notes cleared!")
-                except PermissionError:
-                    print("Permission denied clearing", notes_file)
-                except OSError as e:
-                    print("Error clearing notes:", e)
-            else:
-                print("Clear cancelled.")
-
-        elif choice == '4':
-            return
-
-
-# ---------------------- TIMER / STOPWATCH ----------------------
-def timer_tool():
-    while True:
-        print("\n--- Timer / Stopwatch ---")
-        print("1. Timer")
-        print("2. Stopwatch")
-        print("3. Back to Main Menu")
-
-        choice = read_choice("Choose an option: ", valid={'1', '2', '3'})
-
-        if choice == '1':
-            try:
-                seconds = int(input("Enter seconds (non-negative integer): ").strip())
-                if seconds < 0:
-                    print("Please enter a non-negative integer.")
-                    continue
-            except ValueError:
-                print("Please enter a valid integer number of seconds.")
+            if choice == '5':
+                self.show_history()
                 continue
 
             try:
-                for i in range(seconds, 0, -1):
-                    print(f"Time left: {i} sec", end="\r", flush=True)
-                    time.sleep(1)
-                print("\nTimer completed!")
-            except KeyboardInterrupt:
-                print("\nTimer interrupted.")
+                a = float(input("Enter first number: ").strip())
+                b = float(input("Enter second number: ").strip())
+            except ValueError:
+                print("Invalid number input.")
+                continue
 
-        elif choice == '2':
-            input("Press Enter to start stopwatch...")
-            start = time.perf_counter()
-            try:
-                input("Press Enter to stop stopwatch...")
-            except KeyboardInterrupt:
-                print("\nStopwatch interrupted; stopping now.")
-            end = time.perf_counter()
-            elapsed = round(end - start, 2)
-            print("Elapsed Time:", elapsed, "seconds")
+            if choice == '1':
+                res = a + b
+                op = '+'
+            elif choice == '2':
+                res = a - b
+                op = '-'
+            elif choice == '3':
+                res = a * b
+                op = '*'
+            elif choice == '4':
+                if b == 0:
+                    print("Error: Division by zero.")
+                    continue
+                res = a / b
+                op = '/'
 
-        elif choice == '3':
+            out = f"{a} {op} {b} = {res}"
+            print("Result:", res)
+            self.history.append(out)
+
+    def show_history(self):
+        print("\n--- Calculator History ---")
+        if not self.history:
+            print("No history.")
+        else:
+            for i, line in enumerate(self.history, 1):
+                print(f"{i}. {line}")
+        press_enter()
+
+
+# -------------------------
+# Notes Manager (SQLite)
+# -------------------------
+class NotesManager:
+    DB_FILENAME = Path.cwd() / "notes.db"
+
+    def __init__(self):
+        self.conn = None
+        self._ensure_db()
+
+    def _ensure_db(self):
+        self.conn = sqlite3.connect(str(self.DB_FILENAME))
+        self.conn.row_factory = sqlite3.Row
+        cur = self.conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created TEXT NOT NULL
+            )
+        """)
+        self.conn.commit()
+
+    def run(self):
+        while True:
+            print("\nNOTES MANAGER:")
+            print("1. View All Notes")
+            print("2. Add New Note")
+            print("3. Search Notes")
+            print("4. Edit Note")
+            print("5. Delete Note")
+            print("6. Export Notes")
+            print("7. Back to Main Menu")
+            choice = read_choice("Enter choice: ", valid={str(i) for i in range(1,8)})
+            if choice == "" or choice == '7':
+                return
+            if choice == '1':
+                self.view_all()
+            elif choice == '2':
+                self.add_note()
+            elif choice == '3':
+                self.search_notes()
+            elif choice == '4':
+                self.edit_note()
+            elif choice == '5':
+                self.delete_note()
+            elif choice == '6':
+                self.export_notes()
+
+    def add_note(self):
+        print("\nADD NEW NOTE:")
+        title = input("Enter note title: ").strip()
+        if not title:
+            print("Title cannot be empty.")
+            press_enter()
             return
 
+        print("Enter note content (finish by entering an empty line):")
+        lines = []
+        while True:
+            try:
+                line = input()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if line == "":
+                break
+            lines.append(line)
+        content = "\n".join(lines).strip()
+        if not content:
+            print("Content cannot be empty.")
+            press_enter()
+            return
 
-# ---------------------- FILE ORGANIZER ----------------------
-def file_organizer():
-    print("\n--- File Organizer ---")
-    raw_path = input("Please enter folder path to organize: ").strip()
-    if not raw_path:
-        print("No path provided.")
-        return
+        created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cur = self.conn.cursor()
+        cur.execute("INSERT INTO notes (title, content, created) VALUES (?, ?, ?)",
+                    (title, content, created))
+        self.conn.commit()
+        note_id = cur.lastrowid
+        print("\n✅ Note added successfully!")
+        print(f"Note ID: {note_id}")
+        print(f"Created: {created}")
+        press_enter()
 
-    path = Path(raw_path).expanduser()
+    def view_all(self):
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, title, created FROM notes ORDER BY created DESC")
+        rows = cur.fetchall()
+        if not rows:
+            print("\nNo notes found.")
+            press_enter()
+            return
+        print("\nALL NOTES:")
+        for r in rows:
+            print(f"ID: {r['id']} | Title: {r['title']} | Created: {r['created']}")
+        sub = read_choice("\nView a note by ID (enter ID) or press Enter to return: ")
+        if not sub:
+            return
+        if not sub.isdigit():
+            print("Invalid ID.")
+            press_enter()
+            return
+        self.view_by_id(int(sub))
 
-    if not path.is_dir():
-        print("Invalid folder path! Please enter correct folder location.")
-        return
+    def view_by_id(self, note_id: int):
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+        row = cur.fetchone()
+        if not row:
+            print("Note not found.")
+            press_enter()
+            return
+        print("\n" + "="*60)
+        print(f"ID: {row['id']}")
+        print(f"Title: {row['title']}")
+        print(f"Created: {row['created']}")
+        print("-"*60)
+        print(row['content'])
+        print("="*60)
+        press_enter()
 
-    file_types = {
+    def search_notes(self):
+        q = input("\nEnter search keyword (title or content): ").strip()
+        if not q:
+            print("Empty search. Aborting.")
+            press_enter()
+            return
+        like = f"%{q}%"
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, title, created FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY created DESC",
+                    (like, like))
+        rows = cur.fetchall()
+        if not rows:
+            print("No matching notes.")
+            press_enter()
+            return
+        print(f"\nResults for '{q}':")
+        for r in rows:
+            print(f"ID: {r['id']} | Title: {r['title']} | Created: {r['created']}")
+        press_enter()
+
+    def edit_note(self):
+        nid = input("\nEnter note ID to edit: ").strip()
+        if not nid.isdigit():
+            print("Invalid ID.")
+            press_enter()
+            return
+        nid = int(nid)
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM notes WHERE id = ?", (nid,))
+        row = cur.fetchone()
+        if not row:
+            print("Note not found.")
+            press_enter()
+            return
+        print(f"Current title: {row['title']}")
+        new_title = input("New title (leave blank to keep): ").strip()
+        if not new_title:
+            new_title = row['title']
+        print("Current content:")
+        print(row['content'])
+        print("Enter new content (empty line to keep current):")
+        lines = []
+        while True:
+            try:
+                line = input()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if line == "":
+                break
+            lines.append(line)
+        if lines:
+            new_content = "\n".join(lines).strip()
+        else:
+            new_content = row['content']
+        cur.execute("UPDATE notes SET title = ?, content = ? WHERE id = ?", (new_title, new_content, nid))
+        self.conn.commit()
+        print("Note updated.")
+        press_enter()
+
+    def delete_note(self):
+        nid = input("\nEnter note ID to delete: ").strip()
+        if not nid.isdigit():
+            print("Invalid ID.")
+            press_enter()
+            return
+        nid = int(nid)
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, title FROM notes WHERE id = ?", (nid,))
+        row = cur.fetchone()
+        if not row:
+            print("Note not found.")
+            press_enter()
+            return
+        confirm = input(f"Delete note {nid} '{row['title']}'? (y/N): ").strip().lower()
+        if confirm != 'y':
+            print("Delete cancelled.")
+            press_enter()
+            return
+        cur.execute("DELETE FROM notes WHERE id = ?", (nid,))
+        self.conn.commit()
+        print("Note deleted.")
+        press_enter()
+
+    def export_notes(self):
+        print("\nExport options:")
+        print("1. CSV")
+        print("2. JSON")
+        print("3. Back")
+        c = read_choice("Choice: ", valid={'1','2','3'})
+        if c == '' or c == '3':
+            return
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM notes ORDER BY created DESC")
+        rows = cur.fetchall()
+        if not rows:
+            print("No notes to export.")
+            press_enter()
+            return
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if c == '1':
+            out = Path.cwd() / f"notes_export_{timestamp}.csv"
+            with open(out, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["id","title","content","created"])
+                for r in rows:
+                    writer.writerow([r['id'], r['title'], r['content'], r['created']])
+            print(f"Exported {len(rows)} notes to {out}")
+            press_enter()
+        else:
+            out = Path.cwd() / f"notes_export_{timestamp}.json"
+            data = []
+            for r in rows:
+                data.append({"id": r['id'], "title": r['title'], "content": r['content'], "created": r['created']})
+            with open(out, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            print(f"Exported {len(rows)} notes to {out}")
+            press_enter()
+
+    def close(self):
+        if self.conn:
+            self.conn.close()
+
+
+# -------------------------
+# Timer & Stopwatch
+# -------------------------
+class TimerTool:
+    def run(self):
+        while True:
+            print("\n--- Timer / Stopwatch ---")
+            print("1. Timer (countdown seconds)")
+            print("2. Stopwatch")
+            print("3. Back to Main Menu")
+            choice = read_choice("Choose: ", valid={'1','2','3'})
+            if choice == "" or choice == '3':
+                return
+            if choice == '1':
+                self.timer_countdown()
+            elif choice == '2':
+                self.stopwatch()
+
+    def timer_countdown(self):
+        s = input("Enter seconds to count down (non-negative integer): ").strip()
+        if not s.isdigit():
+            print("Invalid input.")
+            press_enter()
+            return
+        seconds = int(s)
+        try:
+            for i in range(seconds, 0, -1):
+                print(f"Time left: {format_seconds(i)}", end="\r", flush=True)
+                time.sleep(1)
+            print("\nTimer completed!")
+        except KeyboardInterrupt:
+            print("\nTimer interrupted.")
+        press_enter()
+
+    def stopwatch(self):
+        print("Press Enter to start stopwatch...")
+        try:
+            input()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return
+        start = time.perf_counter()
+        print("Stopwatch started. Press Enter to stop (Ctrl+C also works).")
+        try:
+            input()
+        except KeyboardInterrupt:
+            print("\nStopping stopwatch due to interrupt.")
+        end = time.perf_counter()
+        elapsed = end - start
+        print("Elapsed:", round(elapsed, 2), "seconds")
+        press_enter()
+
+
+# -------------------------
+# File Organizer
+# -------------------------
+class FileOrganizer:
+    FILE_TYPES = {
         "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"],
         "Documents": [".pdf", ".docx", ".doc", ".txt", ".pptx", ".xlsx", ".csv"],
         "Videos": [".mp4", ".mkv", ".mov", ".avi"],
@@ -257,68 +449,103 @@ def file_organizer():
         "Audio": [".mp3", ".wav", ".flac", ".aac"],
     }
 
-    others_dir = path / "Others"
-    # Iterate only top-level entries; skip directories (we only move files)
-    for item in list(path.iterdir()):
-        try:
-            if not item.is_file():
-                continue  # skip directories and special files
-            ext = item.suffix.lower()
-            moved = False
-            for folder_name, ext_list in file_types.items():
-                if ext in ext_list:
-                    dest = path / folder_name
-                    safe_move(item, dest)
-                    moved = True
-                    break
-            if not moved:
-                safe_move(item, others_dir)
-        except Exception as e:
-            print(f"Error processing {item.name}: {e}")
-
-    print("Folder organized successfully!")
-
-
-# ---------------------- MAIN MENU ----------------------
-def main():
-    global NOTES_FILE
-    try:
-        NOTES_FILE = get_writable_notes_file()
-        print(f"Notes file: {NOTES_FILE}")
-    except Exception as e:
-        NOTES_FILE = None
-        print("Warning: Could not determine a writable notes file. Notes feature may be disabled.")
-        print("Reason:", e)
-
-    while True:
-        print("\n========= Personal Productivity Suite =========")
-        print("1. Calculator")
-        print("2. Notes App")
-        print("3. Timer / Stopwatch")
-        print("4. File Organizer")
-        print("5. Exit")
-
-        choice = read_choice("Choose an option: ", valid={'1', '2', '3', '4', '5'})
-
-        if choice == '1':
-            calculator()
-        elif choice == '2':
-            notes_app()
-        elif choice == '3':
-            timer_tool()
-        elif choice == '4':
-            file_organizer()
-        elif choice == '5':
-            print("Exiting... Have a productive day!")
+    def run(self):
+        print("\n--- File Organizer ---")
+        raw = input("Enter folder path to organize (leave blank for current dir): ").strip()
+        if not raw:
+            path = Path.cwd()
+        else:
+            path = Path(raw).expanduser()
+        if not path.exists() or not path.is_dir():
+            print("Invalid folder path.")
+            press_enter()
             return
+        self.organize(path)
+        press_enter()
+
+    def organize(self, path: Path):
+        others = path / "Others"
+        try:
+            for item in list(path.iterdir()):
+                # skip directories we may create (like 'Images'), skip the database
+                if item.is_dir():
+                    continue
+                if item == NotesManager.DB_FILENAME:
+                    # do not move the notes database
+                    continue
+                ext = item.suffix.lower()
+                moved = False
+                for folder, ext_list in self.FILE_TYPES.items():
+                    if ext in ext_list:
+                        dest = path / folder
+                        safe_move(item, dest)
+                        moved = True
+                        break
+                if not moved:
+                    safe_move(item, others)
+            print("Folder organized successfully!")
+        except PermissionError as e:
+            print("Permission error while organizing:", e)
+        except Exception as e:
+            print("Error while organizing folder:", e)
 
 
-if __name__ == "__main__":
+# -------------------------
+# Main application
+# -------------------------
+class ProductivityApp:
+    def __init__(self):
+        self.calc = Calculator()
+        self.notes = NotesManager()
+        self.timer = TimerTool()
+        self.organizer = FileOrganizer()
+
+    def run(self):
+        try:
+            while True:
+                print("\n" + "="*42)
+                print("     PERSONAL PRODUCTIVITY SUITE")
+                print("="*42)
+                print("\nMAIN MENU:")
+                print("1. Calculator")
+                print("2. Notes Manager")
+                print("3. Timer & Stopwatch")
+                print("4. File Organizer")
+                print("5. Unit Converter")
+                print("6. Backup & Restore")
+                print("7. Exit")
+                choice = read_choice("\nEnter your choice (1-7): ", valid={str(i) for i in range(1,6)})
+                if choice == "" or choice == '5':
+                    print("\nGoodbye!")
+                    return
+                if choice == '1':
+                    self.calc.run()
+                elif choice == '2':
+                    self.notes.run()
+                elif choice == '3':
+                    self.timer.run()
+                elif choice == '4':
+                    self.organizer.run()
+        finally:
+            # cleanup if needed
+            self.notes.close()
+
+
+# -------------------------
+# Entry point
+# -------------------------
+def main():
+    app = ProductivityApp()
     try:
-        main()
+        app.run()
     except KeyboardInterrupt:
         print("\nInterrupted. Exiting...")
         try:
             sys.exit(0)
         except SystemExit:
             pass
+
+
+if __name__ == "__main__":
+    main()
+
