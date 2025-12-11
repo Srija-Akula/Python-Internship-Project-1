@@ -4,12 +4,13 @@
 """
 Productivity Suite (CLI) - Object Oriented
 Tools:
- - Calculator
- - NotesManager (SQLite)
+ - Calculator Tool
+ - Notes Manager (SQLite)
  - Timer & Stopwatch
- - FileOrganizer
+ - File Organizer
  - Unit Converter
  - Backup & Restore
+ - Exit
 Main app coordinates menus and tool invocation.
 """
 
@@ -75,7 +76,7 @@ def format_seconds(seconds: int) -> str:
 
 
 # -------------------------
-# Calculator
+# Calculator Tool
 # -------------------------
 class Calculator:
     def __init__(self):
@@ -83,7 +84,7 @@ class Calculator:
 
     def run(self):
         while True:
-            print("\n--- Calculator ---")
+            print("\n--- Calculator Tool ---")
             print("1. Add")
             print("2. Subtract")
             print("3. Multiply")
@@ -230,7 +231,7 @@ class NotesManager:
                     (title, content, created))
         self.conn.commit()
         note_id = cur.lastrowid
-        print("\n✅ Note added successfully!")
+        print("\n Note added successfully!")
         print(f"Note ID: {note_id}")
         print(f"Created: {created}")
         press_enter()
@@ -719,7 +720,7 @@ class ProductivityApp:
                 print("     PERSONAL PRODUCTIVITY SUITE")
                 print("="*42)
                 print("\nMAIN MENU:")
-                print("1. Calculator")
+                print("1. Calculator Tool")
                 print("2. Notes Manager")
                 print("3. Timer & Stopwatch")
                 print("4. File Organizer")
