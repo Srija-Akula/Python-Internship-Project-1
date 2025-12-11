@@ -1,6 +1,5 @@
-#Personal Productivity Suite
 #!/usr/bin/env python3
-# -- coding: utf-8 --
+# -*- coding: utf-8 -*-
 
 """
 Productivity Suite (CLI) - Object Oriented
@@ -76,7 +75,7 @@ def format_seconds(seconds: int) -> str:
 # Calculator
 # -------------------------
 class Calculator:
-    def _init_(self):
+    def __init__(self):
         self.history: List[str] = []
 
     def run(self):
@@ -144,7 +143,7 @@ class Calculator:
 class NotesManager:
     DB_FILENAME = Path.cwd() / "notes.db"
 
-    def _init_(self):
+    def __init__(self):
         self.conn = None
         self._ensure_db()
 
@@ -495,7 +494,7 @@ class FileOrganizer:
 # Main application
 # -------------------------
 class ProductivityApp:
-    def _init_(self):
+    def __init__(self):
         self.calc = Calculator()
         self.notes = NotesManager()
         self.timer = TimerTool()
@@ -547,5 +546,5 @@ def main():
             pass
 
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     main()
