@@ -514,10 +514,13 @@ class ProductivityApp:
                 print("5. Unit Converter")
                 print("6. Backup & Restore")
                 print("7. Exit")
-                choice = read_choice("\nEnter your choice (1-7): ", valid={str(i) for i in range(1,6)})
-                if choice == "" or choice == '5':
-                    print("\nGoodbye!")
-                    return
+                # VALID corrected to 1..7
+                choice = read_choice("\nEnter your choice (1-7): ", valid={str(i) for i in range(1,8)})
+
+                # Blank input: just loop again
+                if choice == "":
+                    continue
+
                 if choice == '1':
                     self.calc.run()
                 elif choice == '2':
@@ -526,6 +529,15 @@ class ProductivityApp:
                     self.timer.run()
                 elif choice == '4':
                     self.organizer.run()
+                elif choice == '5':
+                    print("\nUnit Converter is not implemented yet.")
+                    press_enter()
+                elif choice == '6':
+                    print("\nBackup & Restore is not implemented yet.")
+                    press_enter()
+                elif choice == '7':
+                    print("\nGoodbye!")
+                    return
         finally:
             # cleanup if needed
             self.notes.close()
