@@ -8,6 +8,8 @@ Tools:
  - NotesManager (SQLite)
  - Timer & Stopwatch
  - FileOrganizer
+ - Unit Converter
+ - Backup & Restore
 Main app coordinates menus and tool invocation.
 """
 
@@ -18,6 +20,7 @@ import shutil
 import sqlite3
 import csv
 import json
+import zipfile
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -187,6 +190,26 @@ class NotesManager:
             elif choice == '6':
                 self.export_notes()
 
+    def _read_multiline(self, prompt_lines_msg: Optional[str] = None) -> str:
+        """
+        Read multiple lines from user until either an empty line or a single '.' line.
+        Returns joined content (no trailing newline).
+        """
+        if prompt_lines_msg:
+            print(prompt_lines_msg)
+        lines = []
+        while True:
+            try:
+                line = input()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            # stop on empty line or single dot
+            if line == "" or line.strip() == ".":
+                break
+            lines.append(line)
+        return "\n".join(lines).strip()
+
     def add_note(self):
         print("\nADD NEW NOTE:")
         title = input("Enter note title: ").strip()
@@ -195,18 +218,7 @@ class NotesManager:
             press_enter()
             return
 
-        print("Enter note content (finish by entering an empty line):")
-        lines = []
-        while True:
-            try:
-                line = input()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
-            if line == "":
-                break
-            lines.append(line)
-        content = "\n".join(lines).strip()
+        content = self._read_multiline("Enter note content (finish by entering an empty line or a single '.' on its own):")
         if not content:
             print("Content cannot be empty.")
             press_enter()
@@ -300,20 +312,8 @@ class NotesManager:
             new_title = row['title']
         print("Current content:")
         print(row['content'])
-        print("Enter new content (empty line to keep current):")
-        lines = []
-        while True:
-            try:
-                line = input()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
-            if line == "":
-                break
-            lines.append(line)
-        if lines:
-            new_content = "\n".join(lines).strip()
-        else:
+        new_content = self._read_multiline("Enter new content (empty line or '.' to keep current):")
+        if not new_content:
             new_content = row['content']
         cur.execute("UPDATE notes SET title = ?, content = ? WHERE id = ?", (new_title, new_content, nid))
         self.conn.commit()
@@ -491,6 +491,216 @@ class FileOrganizer:
 
 
 # -------------------------
+# Unit Converter
+# -------------------------
+class UnitConverter:
+    def run(self):
+        while True:
+            print("\n--- Unit Converter ---")
+            print("1. Length")
+            print("2. Weight")
+            print("3. Temperature")
+            print("4. Back")
+            choice = read_choice("Choose category: ", valid={'1','2','3','4'})
+            if choice == "" or choice == '4':
+                return
+            if choice == '1':
+                self.length_menu()
+            elif choice == '2':
+                self.weight_menu()
+            elif choice == '3':
+                self.temperature_menu()
+
+    # Basic length conversions using meters as base
+    LENGTH_FACTORS = {
+        'm': 1.0,
+        'km': 1000.0,
+        'cm': 0.01,
+        'mm': 0.001,
+        'in': 0.0254,
+        'ft': 0.3048,
+    }
+
+    def length_menu(self):
+        units = sorted(self.LENGTH_FACTORS.keys())
+        print("\nLength units:", ", ".join(units))
+        src = input("From unit: ").strip().lower()
+        dst = input("To unit: ").strip().lower()
+        if src not in self.LENGTH_FACTORS or dst not in self.LENGTH_FACTORS:
+            print("Unknown unit.")
+            press_enter()
+            return
+        try:
+            val = float(input("Value: ").strip())
+        except ValueError:
+            print("Invalid value.")
+            press_enter()
+            return
+        # convert: src -> meters -> dst
+        meters = val * self.LENGTH_FACTORS[src]
+        out = meters / self.LENGTH_FACTORS[dst]
+        print(f"{val} {src} = {out} {dst}")
+        press_enter()
+
+    # Weight conversions using kilograms as base
+    WEIGHT_FACTORS = {
+        'kg': 1.0,
+        'g': 0.001,
+        'lb': 0.45359237,
+        'oz': 0.0283495231,
+    }
+
+    def weight_menu(self):
+        units = sorted(self.WEIGHT_FACTORS.keys())
+        print("\nWeight units:", ", ".join(units))
+        src = input("From unit: ").strip().lower()
+        dst = input("To unit: ").strip().lower()
+        if src not in self.WEIGHT_FACTORS or dst not in self.WEIGHT_FACTORS:
+            print("Unknown unit.")
+            press_enter()
+            return
+        try:
+            val = float(input("Value: ").strip())
+        except ValueError:
+            print("Invalid value.")
+            press_enter()
+            return
+        kg = val * self.WEIGHT_FACTORS[src]
+        out = kg / self.WEIGHT_FACTORS[dst]
+        print(f"{val} {src} = {out} {dst}")
+        press_enter()
+
+    def temperature_menu(self):
+        print("\nTemperature units: C, F, K")
+        src = input("From unit (C/F/K): ").strip().upper()
+        dst = input("To unit (C/F/K): ").strip().upper()
+        if src not in {'C','F','K'} or dst not in {'C','F','K'}:
+            print("Unknown unit.")
+            press_enter()
+            return
+        try:
+            val = float(input("Value: ").strip())
+        except ValueError:
+            print("Invalid value.")
+            press_enter()
+            return
+        out = self._convert_temp(val, src, dst)
+        print(f"{val} {src} = {out} {dst}")
+        press_enter()
+
+    @staticmethod
+    def _convert_temp(v: float, src: str, dst: str) -> float:
+        if src == dst:
+            return v
+        # convert src to C
+        if src == 'C':
+            c = v
+        elif src == 'F':
+            c = (v - 32) * 5.0 / 9.0
+        else:  # K
+            c = v - 273.15
+        # convert C to dst
+        if dst == 'C':
+            return round(c, 4)
+        elif dst == 'F':
+            return round((c * 9.0 / 5.0) + 32, 4)
+        else:  # K
+            return round(c + 273.15, 4)
+
+
+# -------------------------
+# Backup & Restore
+# -------------------------
+class BackupManager:
+    BACKUP_DIR = Path.cwd() / "backups"
+
+    def run(self):
+        while True:
+            print("\n--- Backup & Restore ---")
+            print("1. Create Backup (notes.db)")
+            print("2. List Backups")
+            print("3. Restore Backup")
+            print("4. Back")
+            choice = read_choice("Choice: ", valid={'1','2','3','4'})
+            if choice == "" or choice == '4':
+                return
+            if choice == '1':
+                self.create_backup()
+            elif choice == '2':
+                self.list_backups()
+            elif choice == '3':
+                self.restore_backup()
+
+    def create_backup(self):
+        self.BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_name = f"notes_backup_{timestamp}.zip"
+        backup_path = self.BACKUP_DIR / backup_name
+        try:
+            with zipfile.ZipFile(backup_path, "w", zipfile.ZIP_DEFLATED) as z:
+                if NotesManager.DB_FILENAME.exists():
+                    z.write(NotesManager.DB_FILENAME, NotesManager.DB_FILENAME.name)
+                # Optionally include any other exports (csv/json) in CWD that start with notes_export_
+                for f in Path.cwd().glob("notes_export_*"):
+                    z.write(f, f.name)
+            print(f"Backup created: {backup_path}")
+        except Exception as e:
+            print("Failed to create backup:", e)
+        press_enter()
+
+    def list_backups(self):
+        if not self.BACKUP_DIR.exists():
+            print("No backups found.")
+            press_enter()
+            return
+        items = sorted(self.BACKUP_DIR.iterdir(), reverse=True)
+        if not items:
+            print("No backups found.")
+            press_enter()
+            return
+        print("\nAvailable backups:")
+        for i, p in enumerate(items, 1):
+            print(f"{i}. {p.name}  ({p.stat().st_size} bytes)")
+        press_enter()
+
+    def restore_backup(self):
+        if not self.BACKUP_DIR.exists():
+            print("No backups found.")
+            press_enter()
+            return
+        items = sorted(self.BACKUP_DIR.iterdir(), reverse=True)
+        if not items:
+            print("No backups found.")
+            press_enter()
+            return
+        print("\nSelect backup to restore:")
+        for i, p in enumerate(items, 1):
+            print(f"{i}. {p.name}")
+        choice = read_choice("Enter number or press Enter to cancel: ")
+        if not choice:
+            return
+        if not choice.isdigit() or int(choice) < 1 or int(choice) > len(items):
+            print("Invalid selection.")
+            press_enter()
+            return
+        idx = int(choice) - 1
+        sel = items[idx]
+        try:
+            with zipfile.ZipFile(sel, "r") as z:
+                # Extract only notes.db (and overwrite)
+                names = z.namelist()
+                if NotesManager.DB_FILENAME.name in names:
+                    z.extract(NotesManager.DB_FILENAME.name, Path.cwd())
+                    print("notes.db restored from backup.")
+                else:
+                    print("Backup does not contain notes.db.")
+            press_enter()
+        except Exception as e:
+            print("Failed to restore backup:", e)
+            press_enter()
+
+
+# -------------------------
 # Main application
 # -------------------------
 class ProductivityApp:
@@ -499,6 +709,8 @@ class ProductivityApp:
         self.notes = NotesManager()
         self.timer = TimerTool()
         self.organizer = FileOrganizer()
+        self.converter = UnitConverter()
+        self.backup_manager = BackupManager()
 
     def run(self):
         try:
@@ -530,11 +742,9 @@ class ProductivityApp:
                 elif choice == '4':
                     self.organizer.run()
                 elif choice == '5':
-                    print("\nUnit Converter is not implemented yet.")
-                    press_enter()
+                    self.converter.run()
                 elif choice == '6':
-                    print("\nBackup & Restore is not implemented yet.")
-                    press_enter()
+                    self.backup_manager.run()
                 elif choice == '7':
                     print("\nGoodbye!")
                     return
