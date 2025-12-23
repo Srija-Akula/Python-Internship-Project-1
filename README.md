@@ -41,7 +41,7 @@ Python-Internship-Project-1/
 
 
 
-## How to run the prject:
+## How to run the project:
 1. Clone the repository:
 ```bash
 git clone https://github.com/Srija-Akula/Python-Internship-Project-1.git
