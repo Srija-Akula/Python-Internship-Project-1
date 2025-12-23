@@ -1,32 +1,68 @@
-# Python Internship Project – Productivity Suite
+# **Python Internship Project – Productivity Suite**
 
-## Project Description
+![GitHub Repo stars](https://img.shields.io/github/stars/Srija-Akula/Python-Internship-Project-1)
+![GitHub forks](https://img.shields.io/github/forks/Srija-Akula/Python-Internship-Project-1)
+![GitHub language count](https://img.shields.io/github/languages/count/Srija-Akula/Python-Internship-Project-1)
+![License: MIT](https://img.shields.io/github/license/Srija-Akula/Python-Internship-Project-1)
+
+---
+
+## **📌 Table of Contents**
+- [Project Description](#📖-project-description)
+- [Highlights](#⭐-highlights)
+- [Features](#🚀-features)
+- [Technologies Used](#🛠-technologies-used)
+- [Project Structure](#📂-project-structure)
+- [How to Run the Project](#▶️-how-to-run-the-project)
+- [Screenshots](#💻-screenshots)
+- [Skills & Concepts Learned](#💡-skills--concepts-learned)
+- [Known Issues](#⚠️-known-issues)
+- [Future Enhancements](#📌-future-enhancements)
+- [Author](#👩‍💻-author)
+- [License](#📄-license)
+- [Last Updated](#🕒-last-updated)
+
+---
+
+## **📖 Project Description**
 This project is a **Python-based Productivity Suite** developed as part of an internship program.  
 It is a **Command Line Interface (CLI)** application that combines multiple useful tools into a single program to improve productivity and practice core Python concepts.
 
 The project demonstrates strong fundamentals in **Python programming, file handling, logic building, and modular coding**.
 
+---
 
+## **⭐ Highlights**
+- Fully-featured CLI Productivity Suite  
+- Modular and Object-Oriented design  
+- Backup & Restore functionality  
+- Includes Calculator, Notes Manager, Timer/Stopwatch, File Organizer, Unit Converter  
+- Professional GitHub-ready documentation  
 
-## Features
-- Calculator (basic arithmetic operations)
-- Notes Manager (create, view, and manage notes)
-- Timer & Stopwatch
-- File Organizer
-- Menu-driven CLI interface
-- File handling for data storage
+---
 
+## **🚀 Features**
+- 🧮 Calculator (basic arithmetic operations)  
+- 📝 Notes Manager (create, view, edit, delete, export notes)  
+- ⏱ Timer & Stopwatch  
+- 📂 File Organizer (sorts files by type)  
+- 📏 Unit Converter (length, weight, temperature)  
+- 💾 Backup & Restore (notes database & exports)  
+- 🧑‍💻 Menu-driven CLI interface  
+- 📁 File handling for persistent storage  
 
+---
 
-## Technologies Used
-- Python 3
-- File Handling
-- Object-Oriented Programming (OOP)
-- Standard Python Libraries
+## **🛠 Technologies Used**
+- Python 3  
+- SQLite Database for Notes  
+- File Handling & JSON/CSV export  
+- Object-Oriented Programming (OOP)  
+- Standard Python Libraries (`os`, `sys`, `time`, `shutil`, `zipfile`, `datetime`, `pathlib`)  
 
+---
 
-
-## Project Structure
+## **📂 Project Structure**
 Python-Internship-Project-1/
 │
 ├── main.py
